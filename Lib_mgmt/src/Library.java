@@ -419,6 +419,7 @@ public class Library {
 					}
 				} catch (SQLException ex) {
 					System.out.println("Error in connection: "+ ex.getMessage());
+					JOptionPane.showMessageDialog(null,"Error in connection:" + ex.getMessage());
 				}				
 			}
 		});
