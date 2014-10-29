@@ -307,7 +307,7 @@ public class Library {
 					rs.close();
 					conn.close();
 				} catch (SQLException ex) {
-					System.out.println("Error in connection: "+ ex.getMessage());
+					JOptionPane.showMessageDialog(null,ex.getMessage());
 				}
 			}
 		});
@@ -361,7 +361,7 @@ public class Library {
 					rs.close();
 					conn.close();
 				} catch (SQLException ex) {
-					System.out.println("Error in connection: "+ ex.getMessage());
+					JOptionPane.showMessageDialog(null,ex.getMessage());
 				}
 			}
 		});
@@ -446,7 +446,7 @@ public class Library {
 					rs.close();
 					conn.close();
 				} catch (SQLException ex) {
-					System.out.println("Error in connection: "+ ex.getMessage());
+					JOptionPane.showMessageDialog(null,ex.getMessage());
 				}
 			}
 		});
@@ -488,7 +488,7 @@ public class Library {
 						rs.close();
 						conn.close();
 					} catch(SQLException ex) {
-						System.out.println("Error in connection: "+ ex.getMessage());
+						JOptionPane.showMessageDialog(null,ex.getMessage());
 					}
 				}
 			}
@@ -513,7 +513,7 @@ public class Library {
 					rs.close();
 					conn.close();
 				} catch (SQLException ex) {
-					System.out.println("Error in connection: "+ ex.getMessage());
+					JOptionPane.showMessageDialog(null,ex.getMessage());
 				}
 			}
 		});
