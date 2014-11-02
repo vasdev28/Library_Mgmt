@@ -189,10 +189,10 @@ public class Library {
 		btnCheckOut.setBounds(68, 114, 116, 52);
 		panel2.add(btnCheckOut);
 		
-		JButton btnBrwrDtls = new JButton("Loan History");
+		JButton btnLoanHstry = new JButton("Loan History");
 		
-		btnBrwrDtls.setBounds(247, 11, 150, 155);
-		panel2.add(btnBrwrDtls);
+		btnLoanHstry.setBounds(247, 11, 150, 155);
+		panel2.add(btnLoanHstry);
 		
 		JScrollPane scrollpane2 = new JScrollPane();
 		scrollpane2.setBounds(38, 194, 673, 206);
@@ -350,13 +350,23 @@ public class Library {
 					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
 					Statement stmt = conn.createStatement();
 					stmt.execute("use library;");
-					stmt.execute("update book_loans set date_in=(select date(now())) where book_id = '" +
-					bookId1.getText()+ "' AND card_no = '" +cardNumber1.getText() +"';");
 					
-					String get_books="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in " +
-					"from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans where card_no LIKE '%" + cardNumber1.getText() + "%' ORDER BY card_no;" ;
-
+					String get_books="SELECT Date_in from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans "
+							+ "NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
+							+ " WHERE card_no LIKE '%" + cardNumber1.getText() + "%' AND Book_id LIKE '%" + bookId1.getText() 
+							+ "%' ORDER BY card_no;" ;
+					
 					ResultSet rs = stmt.executeQuery(get_books);
+					rs.next();
+
+					stmt.execute("update book_loans set date_in=(select date(now())) where book_id = '" +
+								bookId1.getText()+ "' AND card_no = '" +cardNumber1.getText() +"' AND Date_In IS NULL;");
+					String get_books1="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
+							" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
+							+ " where card_no LIKE '%" + cardNumber1.getText() + "%' AND Fname LIKE '%" + mFname.getText() + "%' AND "
+							+ "Lname LIKE '%"+ mLname.getText() + "%' ORDER BY card_no;" ;
+
+					rs = stmt.executeQuery(get_books1);
 					table2.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
 					conn.close();
@@ -373,7 +383,7 @@ public class Library {
 					Statement stmt = conn.createStatement();
 					stmt.execute("use library;");
 					String q1="select count(*) from book_loans where card_no='" + cardNumber1.getText()+ "' AND Date_in IS NULL;";
-					ResultSet rs = stmt.executeQuery(q1);
+					ResultSet rs = stmt.executeQuery(q1); 
 					rs.next();
 					int borrowed_books=Integer.parseInt(rs.getString(1));
 					
@@ -382,59 +392,67 @@ public class Library {
 					rs.next();
 					int avl_books =Integer.parseInt(rs.getString(1));
 					
-					if (borrowed_books>2) { 
-						JOptionPane.showMessageDialog(null, "Book Limit of 3 books Reached !!!");
-						rs.close();
-						conn.close();
-					} else if (avl_books < 1) {
-						JOptionPane.showMessageDialog(null, "The Requested Book is not available in this branch.");
-						rs.close();
-						conn.close();
-					} else {
-						String q4="select Branch_id,Due_date from book NATURAL JOIN Book_loans " +
-								" where book_id LIKE '%" + bookId1.getText() + "%' AND card_no LIKE '%" + cardNumber1.getText() + "%' AND Date_in is NULL ORDER BY card_no;";
-						rs =stmt.executeQuery(q4);
-						if (!rs.next()) {
-							String q3="select max(loan_id) from book_loans";
-							rs = stmt.executeQuery(q3);
-							int l_id;
-							try {
-								rs.next();				
-								l_id=Integer.parseInt(rs.getString(1))+1;
-							} catch(Exception ex1) {
-								l_id =1;
-							}
-							stmt.execute("Insert into book_loans values ('"+ l_id+"','"+bookId1.getText()+"','"+branchId1.getText()+"','"
-								+cardNumber1.getText()+"',(select date(now())),(select adddate(date(now()) ,INTERVAL 14 DAY)),NULL);");
-							String get_books1="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in " +
-									"from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans where card_no LIKE '%"
-									 + cardNumber1.getText() + "%'" ;
-							rs=stmt.executeQuery(get_books1);
-							table2.setModel(DbUtils.resultSetToTableModel(rs));
+					String q3="SELECT card_no, SUM(Fine_amt) from book_loans NATURAL JOIN Fines "
+							+ "WHERE paid=0 AND card_no LIKE '%"+cardNumber1.getText() +"%' GROUP BY Fine_amt";
+					rs = stmt.executeQuery(q3);
+					rs.next();
+					try {
+						rs.getString(1);
+						JOptionPane.showMessageDialog(null, "You have fines pending. Please clear that & checkout !!!");
+					} catch (Exception ex) {
+						if (borrowed_books>2) { 
+							JOptionPane.showMessageDialog(null, "Book Limit of 3 books Reached !!!");
+						} else if (avl_books < 1) {
+							JOptionPane.showMessageDialog(null, "The Requested Book is not available in this branch.");
 						} else {
-							JOptionPane.showMessageDialog(null, "The Requested Book has already been taken by the account holder from branch "+rs.getString(1));
+							String q4="select Branch_id,Due_date from book NATURAL JOIN Book_loans " +
+									" where book_id LIKE '%" + bookId1.getText() + "%' AND card_no LIKE '%" + cardNumber1.getText() + "%' AND Date_in is NULL ORDER BY card_no;";
+							rs =stmt.executeQuery(q4);
+							if (!rs.next()) {
+								String q5="select max(loan_id) from book_loans";
+								rs = stmt.executeQuery(q5);
+								int l_id;
+								try {
+									rs.next();				
+									l_id=Integer.parseInt(rs.getString(1))+1;
+								} catch(Exception ex1) {
+									l_id =1;
+								}
+								stmt.execute("Insert into book_loans values ('"+ l_id+"','"+bookId1.getText()+"','"+branchId1.getText()+"','"
+									+cardNumber1.getText()+"',(select date(now())),(select adddate(date(now()) ,INTERVAL 14 DAY)),NULL);");
+								String get_books1="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
+										" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
+										+ " where card_no LIKE '%" + cardNumber1.getText() + "%' AND Fname LIKE '%" + mFname.getText() + "%' AND "
+										+ "Lname LIKE '%"+ mLname.getText() + "%' ORDER BY card_no;" ;
+								rs=stmt.executeQuery(get_books1);
+								table2.setModel(DbUtils.resultSetToTableModel(rs));
+							} else {
+								JOptionPane.showMessageDialog(null, "The Requested Book has already been taken by the account holder from branch "+rs.getString(1));
+							}
 						}
-						rs.close();
-						conn.close();
 					}
+					rs.close();
+					conn.close();
 				} catch (SQLException ex) {
 					JOptionPane.showMessageDialog(null,"Error in connection:" + ex.getMessage());
 				}				
 			}
 		});
 		
-		btnBrwrDtls.addActionListener(new ActionListener() {
+		btnLoanHstry.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
 					Statement stmt = conn.createStatement();
 					stmt.execute("use library;");
-					
-					String q1="INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
+					// Paid=Null => Data not in fines table. So Insert it to fines table.
+					String q0 = "Delete from fines where paid=0;";
+					String q1 = "INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
 							+ "from book_loans LEFT JOIN Fines USING (Loan_id) WHERE Date_in IS NULL AND PAID IS NULL AND now()>Due_date);" ;
-					String q2="update fines f SET Fine_amt= (select 0.25*datediff(now(),due_date) FROM book_loans b where b.date_in IS NULL AND b.loan_id=f.loan_id) WHERE paid=0;";
+					//String q2 = "update fines f SET Fine_amt= (select 0.25*datediff(now(),due_date) FROM book_loans b where b.date_in IS NULL AND b.loan_id=f.loan_id) WHERE paid=0;";
+					stmt.execute(q0);
 					stmt.execute(q1);
-					stmt.execute(q2);
+					//stmt.execute(q2);
 					
 					String get_books="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
 					" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
