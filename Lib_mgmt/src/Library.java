@@ -351,22 +351,13 @@ public class Library {
 					Statement stmt = conn.createStatement();
 					stmt.execute("use library;");
 					
-					String get_books="SELECT Date_in from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans "
-							+ "NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
-							+ " WHERE card_no LIKE '%" + cardNumber1.getText() + "%' AND Book_id LIKE '%" + bookId1.getText() 
-							+ "%' ORDER BY card_no;" ;
-					
-					ResultSet rs = stmt.executeQuery(get_books);
-					rs.next();
-
 					stmt.execute("update book_loans set date_in=(select date(now())) where book_id = '" +
 								bookId1.getText()+ "' AND card_no = '" +cardNumber1.getText() +"' AND Date_In IS NULL;");
-					String get_books1="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
+					String get_books="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
 							" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
-							+ " where card_no LIKE '%" + cardNumber1.getText() + "%' AND Fname LIKE '%" + mFname.getText() + "%' AND "
-							+ "Lname LIKE '%"+ mLname.getText() + "%' ORDER BY card_no;" ;
+							+ " where card_no LIKE '%" + cardNumber1.getText() + "%' ORDER BY card_no;" ;
 
-					rs = stmt.executeQuery(get_books1);
+					ResultSet rs = stmt.executeQuery(get_books);
 					table2.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
 					conn.close();
