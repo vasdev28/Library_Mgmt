@@ -283,7 +283,7 @@ public class Library {
 		panel4.setLayout(null);
 		
 		JButton btnGetFines = new JButton("Get Fines by Card Number");
-		btnGetFines.setBounds(280, 11, 184, 43);
+		btnGetFines.setBounds(497, 114, 184, 43);
 		panel4.add(btnGetFines);
 		
 		JScrollPane scrollPane4 = new JScrollPane();
@@ -303,11 +303,11 @@ public class Library {
 		txtLoanId.setColumns(10);
 		
 		JButton btnPayFines = new JButton("Pay Fine");
-		btnPayFines.setBounds(61, 117, 184, 37);
+		btnPayFines.setBounds(62, 114, 184, 43);
 		panel4.add(btnPayFines);
 		
 		JButton btnGetFinesBy = new JButton("Get Fines by Loan_id");
-		btnGetFinesBy.setBounds(280, 65, 184, 37);
+		btnGetFinesBy.setBounds(280, 114, 184, 43);
 		panel4.add(btnGetFinesBy);
 		
 		txtCardNumber = new JTextField();
@@ -318,6 +318,14 @@ public class Library {
 		JLabel lblCardNumber_1 = new JLabel("Card Number");
 		lblCardNumber_1.setBounds(41, 25, 83, 14);
 		panel4.add(lblCardNumber_1);
+		
+		JLabel lblFname = new JLabel("Fname");
+		lblFname.setBounds(310, 28, 83, 14);
+		panel4.add(lblFname);
+		
+		JLabel lblLname = new JLabel("Lname");
+		lblLname.setBounds(310, 79, 83, 14);
+		panel4.add(lblLname);
 		
 		btnShowBooks.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -652,6 +660,18 @@ public class Library {
 				} catch (SQLException ex) {
 					JOptionPane.showMessageDialog(null,ex.getMessage());
 				}
+			}
+		});
+		
+		table4.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent arg0) {
+				txtLoanId.setText(table4.getValueAt(table4.getSelectedRow(), 0).toString());
+			}
+		});
+		
+		table4.addKeyListener(new KeyAdapter() {
+			public void keyReleased(KeyEvent e) {
+				txtLoanId.setText(table4.getValueAt(table4.getSelectedRow(), 0).toString());
 			}
 		});
 	}
