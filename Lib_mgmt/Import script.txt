@@ -1,0 +1,78 @@
+set fd_book_authors [open "D:/UTD/Fall 14/Database Design/SQL_library_project_data/books_authors.csv" r]
+set book_authors [split [read $fd_book_authors] "\n"]
+set fd_book [open "D:/book.csv" w+]
+set fd_book_authors_all [open "D:/book_authors_all.csv" w+]
+foreach line $book_authors {
+   set new_line [split $line "\t"]
+   puts $fd_book "[lindex $new_line 0]\t[lindex $new_line 2]"
+   puts $fd_book_authors_all "[lindex $new_line 0]\t[lindex $new_line 1]"
+}
+close $fd_book
+close $fd_book_authors
+close $fd_book_authors_all
+
+set fd_borrowers [open "D:/UTD/Fall 14/Database Design/SQL_library_project_data/borrowers.csv" r]
+set borrowers [split [read $fd_borrowers] "\n"]
+set fd_borrower [open "D:/borrower.csv" w+]
+foreach line $borrowers {
+   set new_line [split $line "\t"]
+   set str "[lindex $new_line 0]\t[lindex $new_line 1]\t[lindex $new_line 2]\t[lindex $new_line 3],[lindex $new_line 4],[lindex $new_line 5]\t[lindex $new_line 6]"
+   puts $fd_borrower $str
+}   
+close $fd_borrowers
+close $fd_borrower  
+
+set fd_book_authors [open "D:/UTD/Fall 14/Database Design/SQL_library_project_data/books_authors.csv" r]
+set book_authors [split [read $fd_book_authors] "\n"]
+set fd_book_authors_new [open "D:/book_authors.csv" w+]
+set line_cnt 0
+puts $fd_book_authors_new "Book_id\tAuthor_name\tFname\tMinit\tLname"
+foreach line $book_authors {
+   incr line_ct
+   if {$line_ct==1} {continue}
+   set new_line [split $line "\t"]
+   set auth [lindex $new_line 1]
+   while {1} {
+		if {[regexp "(.*), (.*)" $auth match auth auth1]} {
+			set auth1 [split [string trimright $auth1] " "]
+			puts $fd_book_authors_new "[lindex $new_line 0]\t$auth1\t1"
+		} else {
+			set auth [split [string trimright $auth] " "]
+		    puts $fd_book_authors_new "[lindex $new_line 0]\t$auth\t2"
+		    break
+		}
+   }
+}
+close $fd_book_authors
+close $fd_book_authors_new
+
+### Redundant ###
+set fd_book_copies [open "D:/UTD/Fall 14/Database Design/SQL_library_project_data/book_copies.csv" r]
+set book_copies [split [read $fd_book_copies] "\n"]
+set fd_book_copies1 [open "D:/book_copies.csv" w+]
+foreach line $book_copies {
+   set new_line [split $line "\t"]
+   puts $fd_book_copies1 "[lindex $new_line 0]\t[lindex $new_line 1]\t[lindex $new_line 2]"
+}
+close $fd_book_copies
+close $fd_book_copies1
+
+set fd_lib_branch [open "D:/UTD/Fall 14/Database Design/SQL_library_project_data/library_branch.csv" r]
+set lib_branch [split [read $fd_lib_branch] "\n"]
+set fd_lib_branch1 [open "D:/library_branch.csv" w+]
+foreach line $lib_branch {
+   set new_line [split $line "\t"]
+   puts $fd_lib_branch1 "[lindex $new_line 0]\t[lindex $new_line 1]\t[lindex $new_line 2]"
+}
+close $fd_lib_branch
+close $fd_lib_branch1
+
+set fd_book_loans_data [open "D:/UTD/Fall 14/Database Design/SQL_library_project_data/book_loans_data.csv" r]
+set book_loans_data [split [read $fd_book_loans_data] "\n"]
+set fd_book_loans [open "D:/book_loans.csv" w+]
+foreach line $book_loans_data {
+   set new_line [split $line "\t"]
+   puts $fd_book_loans "[lindex $new_line 0]\t[lindex $new_line 1]\t[lindex $new_line 2]\t[lindex $new_line 3]\t[lindex $new_line 4]\t[lindex $new_line 5]\t[lindex $new_line 6]"
+}
+close $fd_book_loans_data
+close $fd_book_loans
