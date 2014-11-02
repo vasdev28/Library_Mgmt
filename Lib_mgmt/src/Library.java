@@ -69,6 +69,8 @@ public class Library {
 	private JTextField mFname;
 	private JTextField mLname;
 	private JTable table4;
+	private JTextField txtLoanId;
+	private JTextField txtCardNumber;
 
 	public Library() {
 		initialize();
@@ -280,16 +282,42 @@ public class Library {
 		tabbedPane.addTab("Fines", null, panel4, null);
 		panel4.setLayout(null);
 		
-		JButton btnGetFines = new JButton("Get Fines");
-		btnGetFines.setBounds(300, 39, 89, 23);
+		JButton btnGetFines = new JButton("Get Fines by Card Number");
+		btnGetFines.setBounds(280, 11, 184, 43);
 		panel4.add(btnGetFines);
 		
 		JScrollPane scrollPane4 = new JScrollPane();
-		scrollPane4.setBounds(41, 111, 686, 299);
+		scrollPane4.setBounds(41, 178, 686, 232);
 		panel4.add(scrollPane4);
 		
 		table4 = new JTable();
 		scrollPane4.setViewportView(table4);
+		
+		JLabel lblLoanid = new JLabel("Loan_id");
+		lblLoanid.setBounds(41, 79, 68, 14);
+		panel4.add(lblLoanid);
+		
+		txtLoanId = new JTextField();
+		txtLoanId.setBounds(145, 76, 100, 20);
+		panel4.add(txtLoanId);
+		txtLoanId.setColumns(10);
+		
+		JButton btnPayFines = new JButton("Pay Fine");
+		btnPayFines.setBounds(61, 117, 184, 37);
+		panel4.add(btnPayFines);
+		
+		JButton btnGetFinesBy = new JButton("Get Fines by Loan_id");
+		btnGetFinesBy.setBounds(280, 65, 184, 37);
+		panel4.add(btnGetFinesBy);
+		
+		txtCardNumber = new JTextField();
+		txtCardNumber.setBounds(145, 22, 100, 20);
+		panel4.add(txtCardNumber);
+		txtCardNumber.setColumns(10);
+		
+		JLabel lblCardNumber_1 = new JLabel("Card Number");
+		lblCardNumber_1.setBounds(41, 25, 83, 14);
+		panel4.add(lblCardNumber_1);
 		
 		btnShowBooks.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -350,14 +378,27 @@ public class Library {
 					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
 					Statement stmt = conn.createStatement();
 					stmt.execute("use library;");
-					
-					stmt.execute("update book_loans set date_in=(select date(now())) where book_id = '" +
-								bookId1.getText()+ "' AND card_no = '" +cardNumber1.getText() +"' AND Date_In IS NULL;");
+					String getLoanId="SELECT Loan_id from book_loans where book_id = '" +
+								bookId1.getText()+ "' AND card_no = '" +cardNumber1.getText() +"' AND Date_In IS NULL;";
+					ResultSet rs = stmt.executeQuery(getLoanId);
+					if(rs.next()) {
+						String loan_id=rs.getString("Loan_id");
+						stmt.execute("update book_loans set date_in=(select date(now())) where loan_id = '" + loan_id+"';");
+						rs =stmt.executeQuery("Select 0.25*datediff(now(),due_date) from book_loans where loan_id='"+loan_id+"';");
+						rs.next();
+						String fines=rs.getString(1);
+						if(Double.compare(Double.parseDouble(fines),0.0)>0) {
+							stmt.execute("delete from fines where loan_id = '"+loan_id+"';");
+							stmt.execute("insert into fines values ('"+loan_id+"','"+fines+"','0');");
+						}
+					} else {
+						JOptionPane.showMessageDialog(null,"No such booked checked-out for the given details");
+					}
 					String get_books="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
 							" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
 							+ " where card_no LIKE '%" + cardNumber1.getText() + "%' ORDER BY card_no;" ;
 
-					ResultSet rs = stmt.executeQuery(get_books);
+					rs = stmt.executeQuery(get_books);
 					table2.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
 					conn.close();
@@ -435,22 +476,25 @@ public class Library {
 				try {
 					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
 					Statement stmt = conn.createStatement();
+					Statement stmt1= conn.createStatement();
 					stmt.execute("use library;");
 					// Paid=Null => Data not in fines table. So Insert it to fines table.
-					String q0 = "Delete from fines where paid=0;";
 					String q1 = "INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
 							+ "from book_loans LEFT JOIN Fines USING (Loan_id) WHERE Date_in IS NULL AND PAID IS NULL AND now()>Due_date);" ;
-					//String q2 = "update fines f SET Fine_amt= (select 0.25*datediff(now(),due_date) FROM book_loans b where b.date_in IS NULL AND b.loan_id=f.loan_id) WHERE paid=0;";
-					stmt.execute(q0);
+					String q2 = "SELECT Loan_id, 0.25*datediff(now(),due_date),0 FROM book_loans WHERE date_in IS NULL AND now()>due_date;";
 					stmt.execute(q1);
-					//stmt.execute(q2);
-					
-					String get_books="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
-					" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
-					+ " where card_no LIKE '%" + cardNumber1.getText() + "%' AND Fname LIKE '%" + mFname.getText() + "%' AND "
-					+ "Lname LIKE '%"+ mLname.getText() + "%' ORDER BY card_no;" ;
-		
-					ResultSet rs = stmt.executeQuery(get_books);
+					ResultSet rs=stmt1.executeQuery(q2);
+				    while(rs.next()) {
+				    	String loan_id = rs.getString(1);
+				    	String fine_amt = rs.getString(2);
+				    	String update_fines = "UPDATE fines SET Fine_amt="+fine_amt+",paid=0 where loan_id ="+loan_id;
+				    	stmt.execute(update_fines);
+				    }
+				    String get_books="select Card_no, Book_Id, Title, Author_name, Branch_id, Due_date, Date_in, Fine_amt " +
+							" from book NATURAL JOIN book_authors_all NATURAL JOIN Book_loans NATURAL JOIN BORROWER LEFT JOIN FINES USING (Loan_id)"
+							+ " where card_no LIKE '%" + cardNumber1.getText() + "%' AND Fname LIKE '%" + mFname.getText() + "%' AND "
+							+ "Lname LIKE '%"+ mLname.getText() + "%' ORDER BY card_no;" ;
+					rs = stmt.executeQuery(get_books);
 					table2.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
 					conn.close();
@@ -510,14 +554,98 @@ public class Library {
 					Statement stmt = conn.createStatement();
 					stmt.execute("use library;");
 					
-					String q1="INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
+					Statement stmt1= conn.createStatement();
+					// Paid=Null => Data not in fines table. So Insert it to fines table.
+					String q1 = "INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
 							+ "from book_loans LEFT JOIN Fines USING (Loan_id) WHERE Date_in IS NULL AND PAID IS NULL AND now()>Due_date);" ;
-					String q2="update fines f SET Fine_amt= (select 0.25*datediff(now(),due_date) FROM book_loans b where b.date_in IS NULL AND b.loan_id=f.loan_id) where paid=0;";
-					String q3= "select Card_no,Fname,Lname,SUM(Fine_amt) Total_Fine"
-							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL AND Paid = 0 GROUP BY Card_no;";
 					stmt.execute(q1);
-					stmt.execute(q2);
-					ResultSet rs = stmt.executeQuery(q3);
+					String q2 = "SELECT Loan_id, 0.25*datediff(now(),due_date),0 FROM book_loans WHERE date_in IS NULL AND now()>due_date;";
+					ResultSet rs=stmt1.executeQuery(q2);
+				    while(rs.next()) {
+				    	String loan_id = rs.getString(1);
+				    	String fine_amt = rs.getString(2);
+				    	String update_fines = "UPDATE fines SET Fine_amt="+fine_amt+",paid=0 where loan_id ="+loan_id;
+				    	stmt.execute(update_fines);
+				    }
+					
+					String q3= "select Card_no,Fname,Lname,SUM(Fine_amt) Total_Fine"
+							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL "
+							+ "AND Paid = 0 AND card_no LIKE '%"+txtCardNumber.getText()+"%' GROUP BY Card_no;";
+					rs = stmt.executeQuery(q3);
+					table4.setModel(DbUtils.resultSetToTableModel(rs));
+					rs.close();
+					conn.close();
+				} catch (SQLException ex) {
+					JOptionPane.showMessageDialog(null,ex.getMessage());
+				}
+			}
+		});
+		
+		btnGetFinesBy.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
+					Statement stmt = conn.createStatement();
+					stmt.execute("use library;");
+					
+					Statement stmt1= conn.createStatement();
+					// Paid=Null => Data not in fines table. So Insert it to fines table.
+					String q1 = "INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
+							+ "from book_loans LEFT JOIN Fines USING (Loan_id) WHERE Date_in IS NULL AND PAID IS NULL AND now()>Due_date);" ;
+					stmt.execute(q1);
+					String q2 = "SELECT Loan_id, 0.25*datediff(now(),due_date),0 FROM book_loans WHERE date_in IS NULL AND now()>due_date;";
+					ResultSet rs=stmt1.executeQuery(q2);
+				    while(rs.next()) {
+				    	String loan_id = rs.getString(1);
+				    	String fine_amt = rs.getString(2);
+				    	String update_fines = "UPDATE fines SET Fine_amt="+fine_amt+",paid=0 where loan_id ="+loan_id;
+				    	stmt.execute(update_fines);
+				    }
+					
+					String q3= "select Loan_id,Card_no,Fname,Lname,Fine_amt"
+							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL AND Paid = 0 "
+							+ "AND Loan_id LIKE '%"+ txtLoanId.getText() +"%' ORDER BY Loan_id;";
+					rs = stmt.executeQuery(q3);
+					table4.setModel(DbUtils.resultSetToTableModel(rs));
+					rs.close();
+					conn.close();
+				} catch (SQLException ex) {
+					JOptionPane.showMessageDialog(null,ex.getMessage());
+				}
+			}
+		});
+		
+		btnPayFines.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
+					Statement stmt = conn.createStatement();
+					stmt.execute("use library;");
+					
+					String loan_id=txtLoanId.getText();
+					if (!loan_id.equals("")) {
+						String q0 = "update fines set paid=1 where loan_id = '"+loan_id+"'";
+						stmt.execute(q0);
+					}
+					
+					Statement stmt1= conn.createStatement();
+					// Paid=Null => Data not in fines table. So Insert it to fines table.
+					String q1 = "INSERT INTO Fines (select Loan_id,0.25*datediff(now(),due_date),0 "
+							+ "from book_loans LEFT JOIN Fines USING (Loan_id) WHERE Date_in IS NULL AND PAID IS NULL AND now()>Due_date);" ;
+					stmt.execute(q1);
+					String q2 = "SELECT Loan_id, 0.25*datediff(now(),due_date),0 FROM book_loans WHERE date_in IS NULL AND now()>due_date;";
+					ResultSet rs=stmt1.executeQuery(q2);
+				    while(rs.next()) {
+				    	String loan_id1 = rs.getString(1);
+				    	String fine_amt = rs.getString(2);
+				    	String update_fines = "UPDATE fines SET Fine_amt="+fine_amt+",paid=0 where loan_id ="+loan_id1;
+				    	stmt.execute(update_fines);
+				    }
+					
+					String q3= "select Loan_id,Card_no,Fname,Lname,Fine_amt"
+							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL AND Paid = 0 "
+							+ "AND Loan_id LIKE '%"+ txtLoanId.getText() +"%' ORDER BY Loan_id;";
+					rs = stmt.executeQuery(q3);
 					table4.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
 					conn.close();
