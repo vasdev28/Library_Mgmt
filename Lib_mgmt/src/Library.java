@@ -71,6 +71,8 @@ public class Library {
 	private JTable table4;
 	private JTextField txtLoanId;
 	private JTextField txtCardNumber;
+	private JTextField txtFname;
+	private JTextField txtLname;
 
 	public Library() {
 		initialize();
@@ -97,7 +99,7 @@ public class Library {
 		int xSize = ((int) tk.getScreenSize().getWidth());  
 		int ySize = ((int) tk.getScreenSize().getHeight());  
 		
-		frmLibraryDb.setSize(790,501);
+		frmLibraryDb.setSize(779,489);
 		//frmLibraryDb.setSize(xSize,ySize);
 		frmLibraryDb.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmLibraryDb.getContentPane().setLayout(new BorderLayout(0, 0));
@@ -197,7 +199,7 @@ public class Library {
 		panel2.add(btnLoanHstry);
 		
 		JScrollPane scrollpane2 = new JScrollPane();
-		scrollpane2.setBounds(38, 194, 673, 206);
+		scrollpane2.setBounds(38, 183, 673, 228);
 		panel2.add(scrollpane2);
 		
 		table2 = new JTable();
@@ -231,11 +233,11 @@ public class Library {
 		panel3.add(lblNewLabel_3);
 		
 		JLabel lblNewLabel_4 = new JLabel("Address");
-		lblNewLabel_4.setBounds(60, 61, 46, 14);
+		lblNewLabel_4.setBounds(28, 61, 76, 14);
 		panel3.add(lblNewLabel_4);
 		
 		JLabel lblPhoneNumber = new JLabel("Phone Number");
-		lblPhoneNumber.setBounds(37, 89, 84, 14);
+		lblPhoneNumber.setBounds(28, 90, 84, 14);
 		panel3.add(lblPhoneNumber);
 		
 		JLabel lblFirstName = new JLabel("First Name");
@@ -282,9 +284,9 @@ public class Library {
 		tabbedPane.addTab("Fines", null, panel4, null);
 		panel4.setLayout(null);
 		
-		JButton btnGetFines = new JButton("Get Fines by Card Number");
-		btnGetFines.setBounds(497, 114, 184, 43);
-		panel4.add(btnGetFines);
+		JButton btnGetFinesbyCardNo = new JButton("Get Fines by Card Number");
+		btnGetFinesbyCardNo.setBounds(497, 114, 184, 43);
+		panel4.add(btnGetFinesbyCardNo);
 		
 		JScrollPane scrollPane4 = new JScrollPane();
 		scrollPane4.setBounds(41, 178, 686, 232);
@@ -306,9 +308,9 @@ public class Library {
 		btnPayFines.setBounds(62, 114, 184, 43);
 		panel4.add(btnPayFines);
 		
-		JButton btnGetFinesBy = new JButton("Get Fines by Loan_id");
-		btnGetFinesBy.setBounds(280, 114, 184, 43);
-		panel4.add(btnGetFinesBy);
+		JButton btnGetFinesByLoanId = new JButton("Get Fines by Loan_id");
+		btnGetFinesByLoanId.setBounds(280, 114, 184, 43);
+		panel4.add(btnGetFinesByLoanId);
 		
 		txtCardNumber = new JTextField();
 		txtCardNumber.setBounds(145, 22, 100, 20);
@@ -326,6 +328,16 @@ public class Library {
 		JLabel lblLname = new JLabel("Lname");
 		lblLname.setBounds(310, 79, 83, 14);
 		panel4.add(lblLname);
+		
+		txtFname = new JTextField();
+		txtFname.setBounds(403, 22, 86, 20);
+		panel4.add(txtFname);
+		txtFname.setColumns(10);
+		
+		txtLname = new JTextField();
+		txtLname.setBounds(403, 76, 86, 20);
+		panel4.add(txtLname);
+		txtLname.setColumns(10);
 		
 		btnShowBooks.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -397,7 +409,12 @@ public class Library {
 						String fines=rs.getString(1);
 						if(Double.compare(Double.parseDouble(fines),0.0)>0) {
 							stmt.execute("delete from fines where loan_id = '"+loan_id+"';");
-							stmt.execute("insert into fines values ('"+loan_id+"','"+fines+"','0');");
+							int n=JOptionPane.showConfirmDialog(null, "Would you like to pay the fine along with the check-in?","Say yes or no",JOptionPane.YES_NO_OPTION);
+							if(n>0) {
+								stmt.execute("insert into fines values ('"+loan_id+"','"+fines+"','0');");
+							} else {
+								stmt.execute("insert into fines values ('"+loan_id+"','"+fines+"','1');");
+							}
 						}
 					} else {
 						JOptionPane.showMessageDialog(null,"No such booked checked-out for the given details");
@@ -555,7 +572,7 @@ public class Library {
 			}
 		});	
 		
-		btnGetFines.addActionListener(new ActionListener() {
+		btnGetFinesbyCardNo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
@@ -578,7 +595,8 @@ public class Library {
 					
 					String q3= "select Card_no,Fname,Lname,SUM(Fine_amt) Total_Fine"
 							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL "
-							+ "AND Paid = 0 AND card_no LIKE '%"+txtCardNumber.getText()+"%' GROUP BY Card_no;";
+							+ "AND Paid = 0 AND card_no LIKE '%"+txtCardNumber.getText()+"%' AND Fname LIKE '%"
+							+ txtFname.getText()+"%' AND Lname LIKE '%"+txtLname.getText()+"%' GROUP BY Card_no;";
 					rs = stmt.executeQuery(q3);
 					table4.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
@@ -589,7 +607,7 @@ public class Library {
 			}
 		});
 		
-		btnGetFinesBy.addActionListener(new ActionListener() {
+		btnGetFinesByLoanId.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
 					conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "mysql");
@@ -610,7 +628,7 @@ public class Library {
 				    	stmt.execute(update_fines);
 				    }
 					
-					String q3= "select Loan_id,Card_no,Fname,Lname,Fine_amt"
+					String q3= "select Card_no,Fname,Lname,Fine_amt, Loan_id"
 							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL AND Paid = 0 "
 							+ "AND Loan_id LIKE '%"+ txtLoanId.getText() +"%' ORDER BY Loan_id;";
 					rs = stmt.executeQuery(q3);
@@ -650,9 +668,9 @@ public class Library {
 				    	stmt.execute(update_fines);
 				    }
 					
-					String q3= "select Loan_id,Card_no,Fname,Lname,Fine_amt"
+					String q3= "select Card_no,Fname,Lname,Fine_amt, Loan_id"
 							+ " from Fines NATURAL JOIN book_loans NATURAL JOIN borrower WHERE NOT Fine_amt IS NULL AND Paid = 0 "
-							+ "AND Loan_id LIKE '%"+ txtLoanId.getText() +"%' ORDER BY Loan_id;";
+							+ "AND Card_no LIKE '%"+ txtCardNumber.getText() +"%' ORDER BY Loan_id;";
 					rs = stmt.executeQuery(q3);
 					table4.setModel(DbUtils.resultSetToTableModel(rs));
 					rs.close();
@@ -665,13 +683,25 @@ public class Library {
 		
 		table4.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent arg0) {
-				txtLoanId.setText(table4.getValueAt(table4.getSelectedRow(), 0).toString());
+				try {
+					txtCardNumber.setText(table4.getValueAt(table4.getSelectedRow(), 0).toString());
+					txtFname.setText(table4.getValueAt(table4.getSelectedRow(), 1).toString());
+					txtLname.setText(table4.getValueAt(table4.getSelectedRow(), 2).toString());					
+					txtLoanId.setText(table4.getValueAt(table4.getSelectedRow(), 4).toString());
+				} catch (Exception e) {
+				}
 			}
 		});
 		
 		table4.addKeyListener(new KeyAdapter() {
 			public void keyReleased(KeyEvent e) {
-				txtLoanId.setText(table4.getValueAt(table4.getSelectedRow(), 0).toString());
+				try {
+					txtCardNumber.setText(table4.getValueAt(table4.getSelectedRow(), 0).toString());
+					txtFname.setText(table4.getValueAt(table4.getSelectedRow(), 1).toString());
+					txtLname.setText(table4.getValueAt(table4.getSelectedRow(), 2).toString());
+					txtLoanId.setText(table4.getValueAt(table4.getSelectedRow(), 4).toString());
+				} catch (Exception e1) {
+				}
 			}
 		});
 	}
